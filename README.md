@@ -1,4 +1,5 @@
 # FatoresCategoricos
+# RMarkdown
 # GLMBinomial
 # GLMPoisson
 # ShapiroWilkTest
