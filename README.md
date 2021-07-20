@@ -1,4 +1,10 @@
-# fatorescategoricoscurso
+# FatoresCategoricos
+# GLMBinomial
+# GLMPoisson
+# ShapiroWilkTest
+# Sobredispersion
+# PracticalGuide
+
 Curso prático R - Fatores categóricos
 
 Curso de análise de dados relacionado a pesquisa na área de ciências biológicas.
