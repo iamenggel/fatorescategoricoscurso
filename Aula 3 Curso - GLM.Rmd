@@ -1,0 +1,227 @@
+---
+title: "Aula 3 CursoR GLM Gaussian GLM Poisson"
+author: "Enggel Carmo"
+date: "27/06/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Premissas para análises parámetricas dos dados:
+- Distribuição normal;
+- Variância constante 
+- Independência
+
+## Existem várias situações onde os dados não apresentam essas características 
+
+- As respostas são binária(0,1), ou contávéis
+- Apresentam distribuição não-normal [^1].
+
+[^1]: Demétrio, C. G., Hinde, J., & Moral, R. A. (2014). Models for overdispersed data in entomology. In Ecological modelling applied to entomology (pp. 219-259). Springer, Cham.
+
+## Soluções para esse "problema"  
+### Transformação dos dados
+- Induz aproximação para normalidade;
+- Estabiliza a variância;
+- **não é garantia que uma transformação irão resolver esses problemas: pode haver uma troca entre homocedasticidade e linearidade e necessidade de aplicação de outro modelo** [^2].
+
+[^2]: St‐Pierre, A. P., Shikon, V., & Schneider, D. C. (2018). Count data in biology—Data transformation or model reformation?. Ecology and evolution, 8(6), 3077-3085.
+
+### Modelos lineares generalizados (GLM)
+
+-  Os pesquisadores biológicos podem especificar diretamente a distribuição de erros e a relação entre a média e a variância;
+    - Erro binomial (binário) 
+    - Erro Poisson (contagens por unidade) [^3].  
+    
+[^3]: O'Hara, R., & Kotze, J. (2010). Do not log-transform count data. Nature Precedings, 1-1.
+
+### GLM Gaussian  
+```{r}
+dados<-read.table("Dados_CursoR.txt",h=T)
+attach(dados)
+head(dados)
+```
+```{r Normal/Gaussian}
+gauss=glm(ovos~1)
+gauss1=glm(ovos~Dieta) #modelo
+anova(gauss,gauss1,test="F")
+```
+`gauss` é o modelo nulo (sem efeito do tratamento)  
+`gauss1` é o modelo "mais completo" com efeito do tratamento = _Dieta_
+
+Os modelos apresentaram diferença entre si, ou seja, a _Dieta_ apresentou efeito na análise  
+
+<br>
+
+#### *ANOVA*
+```{r}
+anova(gauss1,test="F")
+
+#Podemos observar que na propria tabela já descreve que o modelo é Gaussian
+```
+A Análise de Deviância do `gauss1` mostrou que a _Dieta_ afetou signficativamente a fecundidade de *Eriopis connexa*.
+<br>
+
+
+```{r}
+summary(gauss1)
+```
+
+## Modelagem para dados contáveis que não apresentam distribuição normal  
+
+### GLM Poisson [^4].  
+[^4]: Warton, D. I., Lyons, M., Stoklosa, J., & Ives, A. R. (2016). Three points to consider when choosing a LM or GLM test for count data. Methods in Ecology and Evolution, 7(8), 882-890.
+
+```{r Poisson}
+ovi=glm(ovos~1,poisson) #modelo nulo
+ovi1=glm(ovos~Dieta,poisson) #modelo completo
+# Adicionar o tipo de distribuição no modelo
+anova(ovi,ovi1,test="Chisq") #Teste qui-quadrado
+```
+#### *ANODEV*
+```{r}
+anova(ovi1,test="Chisq")
+# Análise de deviância do modelo completo
+```
+Tabela com os dados que devem ser adicionados aos resultados  
+
+Efeito da _Dieta_ na fecundidade (X^2^=306.39; df=2,33; *P*<0.001)  
+
+#### Análise de resíduos
+
+Como sabemos se os dados obedecem a distribuição Poisson?  
+    - qqp (quantile-quantile plot) _Aula anterior_  
+    - plot quantile  
+    - "Envelope"  
+    - Análise pelo resíduo da deviancia e seu grau de liberdade  
+<br>  
+Plot quantile  
+```{r Plot quantile}
+par(mfrow=c(2,2)) #linhas,colunas
+plot(ovi1,which=c(1:4),pch=20)
+```
+<br>
+Envelope
+
+Precisa instalar o pacote `RT4bio`
+```{r Envelope, message=FALSE, warning=FALSE}
+library(RT4Bio)
+rdiagnostic(ovi1)
+```  
+<br>
+Análise de resíduo
+```{r analise de residuo}
+summary(ovi1)
+```
+Residual deviance: 130.51  on 42  degrees of freedom
+```{r}
+130.51/42
+```
+### GLM Binomial Negativa
+
+```{r}
+m0b=glm.nb(ovos~1) #binomial negativa glm.nb
+m1b=glm.nb(ovos~Dieta)
+anova(m0b,m1b)
+```
+#### *ANODEV*
+```{r, message= FALSE, warning= FALSE}
+anova(m1b)
+```
+Efeito da _Dieta_ na fecundidade (X^2^=54.078; df=2,33; *P*<0.001)  
+<br>
+  
+#### Análise de resíduo
+```{r}
+par(mfrow=c(2,2))
+plot(m1b,which=c(1:4),pch=20)
+rdiagnostic(m1b)
+summary(m1b)
+```  
+<br>
+Residual deviance: 48.201  on 42  degrees of freedom  
+```{r}
+48.201/42
+```
+Podemos aceitar a distribuição Binomial Negativa para os nossos dados, pois é onde o erro tem menor variação.
+<br>  
+
+### Análise de contraste para separação das médias    
+- Vamos tentar juntas os níveis/tratamentos que tem médias mais próximas
+- Criar modelos e compará-los  
+        - Se existe diferença entre os modelos os níveis são diferentes;  
+        - Se não há diferença entre os modelos (*P*>0.05) os tratamentos não apresentam diferença.
+
+```{r}
+Dieta= as.factor(Dieta)
+medias=tapply(ovos, Dieta, mean)
+medias
+
+sort(medias)
+``` 
+Vamos tentar juntas os níveis/tratamentos que tem médias mais próximas
+```{r}
+dieta2=Dieta
+dieta2
+```
+
+```{r}
+levels(dieta2)[1]= "cocpug"
+levels(dieta2)[3]= "cocpug"
+levels(dieta2)
+```
+Criando modelo com os níveis _cochonilha_ e _pulgão_ amalgamados
+```{r}
+m2b=glm.nb(ovos~dieta2)
+anova(m1b,m2b)
+```
+*P*= 0.11, então os modelos podem ser amalgamados;  
+Cochonilhas e pulgão não apresentam diferença significativa;
+<br>
+Poderiamos amalgamar _Dieta_ ovos e cochonilhas ?
+```{r}
+dieta3=Dieta
+dieta3
+levels(dieta3)[1]= "ovcoc"
+levels(dieta3)[2]= "ovcoc"
+levels(dieta3)
+m3b=glm.nb(ovos~dieta3)
+anova(m1b,m3b)
+```
+Os modelos apresentam diferença significativa, não podemos amalgamálos.
+
+Logo, podemos definir que temos as letras  
+- Pulgão **a**  
+- Cochonilha **a**  
+- Ovos **b**  
+
+#### Gráfico _Boxplot_  
+```{r}
+boxplot(ovos~Dieta,
+ ylab="Nº de ovos",
+ ylim=c(0,150),
+ las=1,
+ names.arg = c("Cochonilha","Ovos", "Pulgão"),
+ col=c("gray","lightgreen", "darkgreen"))
+ text(0.7,100,"a")
+ text(1.7,50,"b")
+ text(2.7,112,"a")
+```
+
+### Lembrar de fazer o `detach` para desafixar a tabela do programa  
+
+Risco de "chamar" variável de outra tabela por ter nomes identicos  
+
+```{r}
+detach(dados)
+```
+
+#### Salvar documento `.docx` > Mostrar documento salvo  
+
+<br>
+<br>
+
+
+
+

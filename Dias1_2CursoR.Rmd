@@ -1,0 +1,228 @@
+---
+title: "Dias 1 e 2 - Curso R"
+author: "Enggel Carmo"
+date: "18/07/2021"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Curso R – Guia Prático para análise de variáveis categóricas  
+
++ Por que eu estou aprendendo isso?
+    + Lembrar da Instalação do R
+    + Instalação do R Studio
+    + Instalação do pacote R Markdown 
+    + Abrir o R studio
+    + Abrir o R markdown  
+<br>
+
+# Dia 1- Criando um documento no R Markdown
+
+ - Será que as funções estão sendo salvas?
+ - Tem que dar espaço para a palavra :)  
+ - Dar **dois espaços** no fim das linhas em branco para mostrar (ao programa) que estamos pulando uma linha  (em negrito  - entre asterisco)
+ - Para *itálico* (apenas um asteriscos)
+ - O R^2^ está sobrescrito  (entre circunflexo)
+ - O teste~12~ está subescrito  (entre til)
+ - Coisas com cara de código fica `shapiro.wilk`  (entre acento grave)
+
+ 
+> Link clicável abaixo 
+ 
+[Meu linkedin:](https://www.linkedin.com/in/enggel-carmo/)
+
+> Adicionar imagem  
+
+
+![](https://entretetizei.com.br/site/wp-content/uploads/2020/12/17632380-high-res-fleabag-1-1554806597-1536x1024.jpg){ width=30% } 
+
+### Criando referências
+
+De acordo com Crawley 2012 [^1].  
+
+[^1]: Crawley, M. J. (2012). The R book. John Wiley & Sons.
+
+## Parte 1.  
+
+### Criar pasta para o curso     
+### Criar documento `RMarkdown`  
+### Salvar documento `Dados_CursoR.txt` na pasta para o curso
+### Salvar documento **Untitled** na pasta do curso  
+
+### Salvar documento `.docx` > Mostrar documento salvo    
+
+# Dia 2 - Importar dados - Distribuição Normal 
+
+## Parte 2. Instalar pacotes 
+
+### Instalar pacotes que serão necessários para o curso
+```{r Pacotes , warning=FALSE, message=FALSE}
+library (MASS)
+library (car)
+library(multcompView)#TukeyHSD
+library(dplyr)
+library(rstatix)
+library(emmeans)
+library(ggplot2)
+library(gplots)
+```
+
+### Importar dados `Dados_CursoR.txt`
+
+> Os formatos mais comuns para importar dados da sua máquina são .csv ou .txt
+
+- Lembrar que .csv deve especificar que as colunas estão separadas por ;
+- Anotações dentro e fora do *{r}*
+```{r Dados}
+dados<-read.table("Dados_CursoR.txt",h=T) #comentários > h=T quer dizer que existe um cabeçalho
+dados
+attach(dados) #direciona que os dados utilizados será do arquivo que estamos utilizando no momento fixando na análise
+summary(dados)
+
+nrow(dados[which(dados$Dieta=="pulgao"),]) #tamanho do nível específico
+
+```
+  
+### Representação da variável **ovos**
+
+Avaliaremos os dados de oviposição e sobrevivência da espécie *Eriopis connexa* em relação as **dietas** consumidas/ofertadas, logo são **variáveis categóricas**.  
+
+```{r}
+hist(ovos)
+```  
+  
+###  Representação gráfica dos quantiles  
+
+Pode auxiliar na escolha do modelo que a distribuição dos seus dados melhor se encaixa.  
+
+```{r}
+par(mfrow=c(1,2)) # plot de dois gráficos na mesma folha
+qqp(ovos, "norm") #quantile quantile plot da distribuição normal
+```
+  
+
+## Parte 3. Análise para dados com distribuição Normal ou Gaussiana   
+
+### Vamos testar a distribuição para a variável **ovos**  
+
++ Distribuição Normal ou Gaussiana  
+    + Concentração de valores em torno de um valor central;
+    + Simetria em torno do valor central;
+    + Frequência pequena de valores muito extremos.  
+    
+  A distribuição normal possui dois parâmetros, a média (μ), ou seja onde está centralizada e a variância (σ2>0) que descreve o seu grau de dispersão. Ou ainda o desvio padrão (σ). Cabe salientar que como qualquer outro modelo, dependendo dos parâmetros, teremos diferentes distribuições normais.
+
+Aceitar  
+H~0~: consistem em dizer que há normalidade nos dados - p > 0.05  
+
+H~1~: que não há - p < 0.05  
+
+![](https://miro.medium.com/max/700/1*NRlqiZGQdsIyAu0KzP7LaQ.png){ width=60% } 
+
+```{r}
+shapiro.test(ovos)
+```
+  
+### Vamos testar a homocedasticidade para **ovos**
+
+Homocedasticidade é o termo para designar variância constante dos erros experimentais. *Cada nível tem sua variação em torno da média, se estes apresentam grande variação, mostra que os dados não são **homogêneos**.*
+
+Quando *p-valor* for **menor** que o nível de significância escolhido para o teste (em geral, convencionado em 0,05), rejeita-se a H~0~ e aceitamos hipótese alternativa, assumindo a **desigualdade das variâncias**. Caso ele seja **maior** que o nível de significância, concluímos que **as variâncias são constantes ou homogêneas**.
+```{r}
+bartlett.test(ovos ~ Dieta, data = dados)
+```
+  
+### Boxplot  
+
+```{r}
+boxplot(ovos~Dieta)
+```
+
+
+### *ANOVA*
+```{r}
+modelo1<-aov(ovos~Dieta)
+anova(modelo1,test="F")
+```
+### Agora podemos fazer o teste t para separação de médias  
+```{r}
+Tukey<-TukeyHSD(x=modelo1,'Dieta', conf.level = 0.95)
+Tukey
+```
+  
+> Extra: Shapiro-Wilk de cada nível dentro do grupo
+
+```{r Shapiro para cada nível, warning=FALSE, message=FALSE}
+library(RVAideMemoire)
+byf.shapiro(ovos~Dieta, data=dados)
+```  
+## Parte 4. Como representar essas informações no trabalho?
+
+#### Nos resultados: O tipo de dieta apresentou efeito ou diferença significativa sobre a fecundidade de *Eriopis connexa* (F~2,33~19.7, P<0.001).
+
+
+## Análise descritiva  {.tabset .tabset-fade}
+
+### Médias e erros
+
+```{r}
+medias<-tapply(ovos, Dieta, mean)
+medias
+
+erro<-tapply(ovos, Dieta, sd)/sqrt(tapply(ovos, Dieta, length))
+erro
+```
+### Representação em Barplot  
+
+```{r}
+barplot2(medias,
+ plot.ci=T,
+ ci.u=medias+erro,
+ ci.l=medias-erro,
+ ylab="Nº de ovos",
+ ylim=c(0,150),
+ las=1,
+ names.arg = c("Cochonilha","Ovos", "Pulgão"),
+ col=c("gray","lightgreen", "darkgreen"))
+ text(0.7,90,"a")
+ text(1.9,50,"b")
+ text(3.1,110,"a")
+abline(h=0)
+```
+
+Livro R markdown [^2]. 
+[Livro:](https://bookdown.org/yihui/bookdown/)  
+
+[^2]: Xie, Y. (2016). Bookdown: authoring books and technical documents with R markdown. CRC Press.
+
+
+**Lembrar de fazer o `detach` para desafixar a tabela do programa.**  
+
+```{r}
+detach(dados)
+```
+
+
+**Risco de "chamar" variável de outra tabela por ter nomes idênticos.**
+
+ **Salvar documento `.docx` > Mostrar documento salvo**
+ <br>
+   
+#### Exercício: Façam o mesmo script para `larvas`.  
+
+> Quem souber transformar para Box-Cox, log ou sqrt fique à vontade também ou ver se a distribuição se encaixa melhor para Gamma.
+
+<br>
+Vem aí:   
+
+# Dia 3 - E quando nossos dados não apresentam distribuição normal?  
+
+- GLM - Distribuição Poisson   
+- GLM - Distribuição Binomial Negativa.   
+- Análise de contraste.  
